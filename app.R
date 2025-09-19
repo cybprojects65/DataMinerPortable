@@ -8,7 +8,45 @@ library(sf)
 library(jsonlite)
 library(shinyjs)
 
-Sys.setlocale("LC_NUMERIC", "C")
+
+
+cleanup<-function(script_folder,params=NULL){
+  www_folder<-"www"
+  cat("cleaning all in process folder",script_folder,"\n")
+  if (dir.exists(www_folder)) {
+    
+    # Delete all files inside, but keep the folder
+    unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
+  }
+  
+  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug)$", full.names = TRUE)
+  
+  # Delete them
+  if (length(aux_files) > 0) {
+    unlink(aux_files)
+  }
+  
+  #aux_folder <- list.files(script_folder, pattern = "\\output$", full.names = TRUE)
+  
+  unlink(paste0(script_folder,"output"), recursive = TRUE)
+
+  cat("cleaning done\n")
+}
+
+decimal_places <- function(x) {
+  # Convert number to character
+  x_char <- format(x, scientific = FALSE, trim = TRUE)
+  
+  # Split at decimal point
+  parts <- strsplit(x_char, ".", fixed = TRUE)[[1]]
+  
+  # If there’s a fractional part, count its length
+  if (length(parts) == 2) {
+    nchar(parts[2])
+  } else {
+    0  # no decimal part
+  }
+}
 
 read_properties <- function(filepath) {
   if (!file.exists(filepath)) {
@@ -70,11 +108,22 @@ for (k in 1:length(properties)){
     parts <- gsub('^"|"$', '', parts)
     lab<-parts[1]
     val<-parts[2]
-    i<-numericInput(
-      inputId = key,
-      label = lab,
-      value = val
+    #i<-numericInput(
+     # inputId = key,
+    #  label = lab,
+    #  value = val
+    #)
+    
+    i<-shinyWidgets::autonumericInput(
+      inputId = key, 
+      label = lab, 
+      value = val, 
+      currencySymbolPlacement = "p",
+      decimalPlaces = decimal_places(as.numeric(val)),
+      digitGroupSeparator = ",",
+      decimalCharacter = "."
     )
+    
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
   } else if (grepl("select_input_*", key, perl = TRUE)){
@@ -142,6 +191,7 @@ for (k in 1:length(properties)){
     input_file_vars_uploaded<<-c(input_file_vars_uploaded,NA)
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
+    
   }else if (grepl("column_selection_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     parts <- gsub('^"|"$', '', parts)
@@ -167,7 +217,7 @@ for (k in 1:length(properties)){
 
 cbl <- do.call(card_body, cb_list)
 
-
+cleanup(script_folder,NULL)
 
 ui <- grid_page(
   tags$head(
@@ -389,32 +439,6 @@ server <- function(input, output, session) {
   
 }
 
-
-cleanup<-function(script_folder,params=NULL){
-  www_folder<-"www"
-  cat("cleaning all in process folder",script_folder,"\n")
-  if (dir.exists(www_folder)) {
-    
-    # Delete all files inside, but keep the folder
-    unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
-  }
-  
-  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug)$", full.names = TRUE)
-  
-  # Delete them
-  if (length(aux_files) > 0) {
-    unlink(aux_files)
-  }
-  
-  aux_folder <- list.files(script_folder, pattern = "\\output$", full.names = TRUE)
-  
-  # Delete them
-  if (length(aux_files) > 0) {
-    unlink(aux_files)
-  }
-  
-  cat("cleaning done\n")
-}
 
 execute<-function(script_folder,params){
   
