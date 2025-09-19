@@ -29,14 +29,20 @@ read_properties <- function(filepath) {
 }
 
 properties <<- read_properties("config.properties")
-header<- properties[["header"]]
-description<- properties[["description"]]
-script_folder<<-"./process/"
+header<<- properties[["header"]]
+description<<- properties[["description"]]
+process_to_call<<- properties[["process"]]
 
-cb_list<-list(useShinyjs())
-all_inputs<-c()
+script_folder<<-"./processes/"
+local_tmp_data_folder<<-"./tmp_data/"
+cb_list<<-list(useShinyjs())
+all_inputs<<-c()
 needs_map<<-F
 bounding_box_input_var<<-""
+input_file_vars<<-c()
+input_file_vars_uploaded<<-c()
+column_vars<<-c()
+column_vars_references<<-c()
 
 for (k in 1:length(properties)){
   key <- names(properties)[k]
@@ -53,7 +59,7 @@ for (k in 1:length(properties)){
       value = val,
       width = "100%"
     )
-    all_inputs<-c(all_inputs,key)
+    all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
       
   }else if (grepl("numeric_*", key, perl = TRUE)){
@@ -67,7 +73,7 @@ for (k in 1:length(properties)){
       label = lab,
       value = val
     )
-    all_inputs<-c(all_inputs,key)
+    all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
   } else if (grepl("select_input_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
@@ -89,7 +95,7 @@ for (k in 1:length(properties)){
       choices = as.list(li),
       selected = def
     )
-    all_inputs<-c(all_inputs,key)
+    all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
   }  else if (grepl("bounding_box_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
@@ -113,14 +119,57 @@ for (k in 1:length(properties)){
     )
     bounding_box_input_var<<-key
     needs_map<<-T
-    all_inputs<-c(all_inputs,key)
+    all_inputs<<-c(all_inputs,key)
+    cb_list[[length(cb_list) + 1]] <- i
+  } else if (grepl("file_input*", key, perl = TRUE)){
+    parts <- v
+    # Remove quotes
+    parts <- gsub('^"|"$', '', parts)
+    lab<-parts
+    
+    i<-fileInput(inputId = key,
+                 label = lab,
+              multiple = FALSE,
+              accept = c(
+                "text/csv",
+                "text/comma-separated-values,text/plain",
+                ".csv", ".txt", ".json", ".zip", ".bin", ".dat", ".mat"
+              ))
+    
+    input_file_vars<<-c(input_file_vars,key)
+    input_file_vars_uploaded<<-c(input_file_vars_uploaded,NA)
+    all_inputs<<-c(all_inputs,key)
+    cb_list[[length(cb_list) + 1]] <- i
+  }else if (grepl("column_selection_*", key, perl = TRUE)){
+    parts <- strsplit(v, ",")[[1]]
+    parts <- gsub('^"|"$', '', parts)
+    reference<-parts[1]
+    lab<-parts[2]
+    
+    i<-checkboxGroupInput(
+      inputId = key,
+      label = lab,
+      choices = list()
+    )
+    
+    column_vars<<-c(column_vars,key)
+    column_vars_references<<-c(column_vars_references,reference)
+    
+    all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
   }
+  
+  
+  
 }
 
 cbl <- do.call(card_body, cb_list)
 
 ui <- grid_page(
+  tags$head(
+    tags$title("DM portable")  # Browser tab title
+  ),
+   #h2("DM portable verion"),
   
   layout = c(
     "header    header",
@@ -234,13 +283,62 @@ server <- function(input, output, session) {
   
   # Enable/disable Execute button
   observe({
-    all_filled <- TRUE
+    #check for file uploading
+    if (length(input_file_vars)>0){
+      #check for input update
+      
+      #else
+      cat("Checking for uploaded inputs\n")
+      fidx<-1
+      for (file in input_file_vars){
+        req(input[[file]])
+        uploader_path <- input[[file]]$datapath
+        
+        current_file<-input_file_vars_uploaded[fidx]
+        if (is.na(current_file) || current_file!=uploader_path){
+          #cat("current file:", current_file,"vs", uploader_path,"\n")
+          input_file_vars_uploaded[fidx]<<-uploader_path
+          cat("User uploaded:", uploader_path, "\n")
+          local_path<-paste0(local_tmp_data_folder, input[[file]]$name)
+          
+           ref<-1
+          for (reference in column_vars_references){
+            cat("filecheck:",reference,"vs",file,"\n")
+            if (reference==file){
+              itemid<-column_vars[ref]
+              #cat("itemid:",itemid,"\n")
+              if ( (tolower(tools::file_ext(uploader_path)) == "csv") && (file.size(uploader_path)>0)
+                  ){
+                headers <- names(read.csv(uploader_path, nrows = 0))
+                updateCheckboxGroupInput(
+                session,
+                inputId = itemid,
+                choices = headers, #c("X", "Y", "Z"),    # new choices
+                selected = headers[1]                 # optional default selection
+                )
+              }
+            }
+            ref<-ref+1
+          }#end for on references
+        }#end if check on the current file update
+        
+       fidx<-fidx+1
+      }
+    }#end check on the existence of files to upload
     
+    
+    all_filled <- TRUE
+    print(all_inputs)
     for (k in 1:length(all_inputs)){
       key <- all_inputs[k]
+      cat("k:",key,"\n")
       val <- input[[key]]
-      #cat("v:",val," k:",key,"\n")
-      if (is.null(val) || val == "" || (is.numeric(val) && is.na(val))) {
+      #cat("v:",val,"\n")
+      print(val)
+      cat(dim(val))
+      
+      if (is.null(val) || (is.data.frame(val) && dim(val)[1]==0) || (is.vector(val) && length(val)==0)
+          || (is.character(val) && nchar(paste0(val,collapse = ""))==0) || (is.numeric(val) && is.na(val))) {
         all_filled <- FALSE
         break
       }
@@ -252,6 +350,10 @@ server <- function(input, output, session) {
     } else {
       disable("start_computation")
     }
+    
+    
+    
+    
   })
   
   computing <- reactiveVal(FALSE)
@@ -260,11 +362,11 @@ server <- function(input, output, session) {
   observeEvent(input$start_computation, {
     
     showNotification("Computation started...", type = "message")
-    params<-c()
+    params<<-list()
     for (k in 1:length(all_inputs)){
       key <- all_inputs[k]
-      val <- input[[key]]
-      params<-c(params,val)
+      val <- as.character(input[[key]])
+      params[[k]]<<-val
     }
     
     cat("params:",paste(params),"\n")   # for debugging
@@ -276,6 +378,11 @@ server <- function(input, output, session) {
     showNotification("Computation finished", type = "message")
     
   })
+
+  #file uploading
+  
+  
+  
 }
 
 
@@ -288,7 +395,7 @@ cleanup<-function(script_folder,params=NULL){
     unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
   }
   
-  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat)$", full.names = TRUE)
+  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt)$", full.names = TRUE)
   
   # Delete them
   if (length(aux_files) > 0) {
@@ -300,7 +407,8 @@ cleanup<-function(script_folder,params=NULL){
 execute<-function(script_folder,params){
   
   cat("#calling the external process\n")
-  source("callProcess.R", local = TRUE)
+  #source("callProcess.R", local = TRUE)
+  source(process_to_call, local = TRUE)
   expected_outputs<-doCall(script_folder,params)
   cat("#process called\n")
   cat("output:",expected_outputs,"\n")
@@ -318,7 +426,7 @@ is_image <- function(filename) {
 downloadResults<- function(expected_outputs,output){
 
   if (length(expected_outputs)>0){
-    showNotification("Computation finished", type = "message")
+    #showNotification("Computation finished", type = "message")
     
     tl<-tagList()
     idx<-1
