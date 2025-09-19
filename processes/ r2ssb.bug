@@ -1,0 +1,58 @@
+
+            model {
+            #priors
+            
+            #force posterior distribution values to 0
+            for (g in land_no_values){
+              P[g]<-0
+            }
+            
+            #initialise the individual-location posterior distribution values in the real observations
+            for (g in real_values_idx){
+              P[g] ~ dunif (
+                  (min_real_value),
+                  (max_real_value))
+            }
+            
+            #initialise the individual-location posterior distribution values in the IDW-estimated observations
+            for (g in values_to_estimate_idx){
+              P[g] ~ dunif (
+                  (min_real_value),
+                  (max_real_value))
+            }
+            
+            #fit the individual distribution values to real observations in the real-value locations - this accounts for error in the observations
+            for (g in real_values_idx){
+              invsigma[g] <- pow(0.1,-2)
+              data_matrix_prefilled_vector[g] ~ dnorm(P[g],invsigma[g])
+            }
+            
+            #fit the other individual-location values to inverse-weighted estimated observations using a larger standard deviation
+            for (g in values_to_estimate_idx){
+              invsigma_na[g] <- pow(prior_sd,-2)
+              data_matrix_prefilled_vector[g] ~ dnorm (P[g],invsigma_na[g])
+            }
+            
+            #Diffusion coeffient prior
+            D_p ~ dunif (min_diffusion_coefficient,max_diffusion_coefficient)
+            
+            #relate the posterior distribution through the advection equation - GP-mail 26/02/2023
+            for (k in valid_index_for_advection_vector_idx){
+              D[k]<-D_p
+              #if the terms involve land points set them to 0
+              ux_dpsi_dx[k]<-ifelse(P[k+1]==0 || P[k-1]==0 , 0, 
+                (-ux[k]*(P[k+1]-P[k-1])/(2*resolution))+(D[k]*(P[k+1]-2*P[k]+P[k-1])/(resolution*resolution))
+              )
+              uy_dpsi_dy[k]<-ifelse(P[k-ncol_r]==0 || P[k+ncol_r]==0, 0,
+                (-uy[k]*(P[k-ncol_r]-P[k+ncol_r])/(2*resolution))+(D[k]*(P[k-ncol_r]-2*P[k]+P[k+ncol_r])/(resolution*resolution))
+                )
+              #advection term: it is set to 0 if at least one term is 0
+              advection[k]<-ifelse(ux_dpsi_dx[k]==0 || uy_dpsi_dy[k]==0, 
+                            0, 
+                            ux_dpsi_dx[k]+uy_dpsi_dy[k])
+              invsigma_adv[k] <- pow(sd_advection_equation,-2)
+              #fit the equation to 0
+              zeros[k] ~ dnorm(advection[k],invsigma_adv[k])
+            }
+            
+            }

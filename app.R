@@ -8,6 +8,8 @@ library(sf)
 library(jsonlite)
 library(shinyjs)
 
+Sys.setlocale("LC_NUMERIC", "C")
+
 read_properties <- function(filepath) {
   if (!file.exists(filepath)) {
     stop(paste("Properties file not found:", filepath))
@@ -133,7 +135,7 @@ for (k in 1:length(properties)){
               accept = c(
                 "text/csv",
                 "text/comma-separated-values,text/plain",
-                ".csv", ".txt", ".json", ".zip", ".bin", ".dat", ".mat"
+                ".csv", ".txt", ".json", ".zip", ".bin", ".dat", ".mat",".asc",".jpg",".png",".tiff",".tif"
               ))
     
     input_file_vars<<-c(input_file_vars,key)
@@ -164,6 +166,8 @@ for (k in 1:length(properties)){
 }
 
 cbl <- do.call(card_body, cb_list)
+
+
 
 ui <- grid_page(
   tags$head(
@@ -395,12 +399,20 @@ cleanup<-function(script_folder,params=NULL){
     unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
   }
   
-  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt)$", full.names = TRUE)
+  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug)$", full.names = TRUE)
   
   # Delete them
   if (length(aux_files) > 0) {
     unlink(aux_files)
   }
+  
+  aux_folder <- list.files(script_folder, pattern = "\\output$", full.names = TRUE)
+  
+  # Delete them
+  if (length(aux_files) > 0) {
+    unlink(aux_files)
+  }
+  
   cat("cleaning done\n")
 }
 
@@ -434,18 +446,19 @@ downloadResults<- function(expected_outputs,output){
       out_path <- paste0(script_folder, outputf)
       if (file.exists(out_path)){
         cat("copying ",out_path,"\n")
-        file.copy(file.path(out_path), paste0("www/",outputf), overwrite = TRUE)
+        target_out<-paste0("www/",basename(outputf))
+        file.copy(file.path(out_path), target_out, overwrite = TRUE)
         if (is_image(out_path)){
           sub_tag<-tagList(
-            tags$img(src = outputf, width = "100%", style = "max-height:400px; object-fit:contain;"),
+            tags$img(src = target_out, width = "100%", style = "max-height:400px; object-fit:contain;"),
             tags$div(style = "margin-top: 1rem;"),
-            downloadButton(paste0("download_",idx), paste0("Download ",outputf)),
+            downloadButton(paste0("download_",idx), paste0("Download ",basename(outputf))),
             tags$div(style = "margin-top: 1rem;")
           )
           
         }else{
           sub_tag<-tagList(
-            downloadButton(paste0("download_",idx), paste0("Download ",outputf)),
+            downloadButton(paste0("download_",idx), paste0("Download ",basename(outputf))),
             tags$div(style = "margin-top: 1rem;")
           )  
         }
@@ -474,7 +487,7 @@ downloadResults<- function(expected_outputs,output){
         
         local({
           idx_fixed<-idx
-          outputf_fixed<-outputf
+          outputf_fixed<-basename(outputf)
           output[[paste0("download_", idx_fixed)]] <- downloadHandler(
             filename = function() basename(outputf_fixed),
             content = function(file) {
