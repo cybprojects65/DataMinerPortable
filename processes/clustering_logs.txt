@@ -1,0 +1,3 @@
+####I'm analyzing eps: 1 ; min_p 2 centroids
+####optimal centroids:  2 
+clustering complete.
