@@ -7,29 +7,110 @@ library(leaflet.extras)
 library(sf)
 library(jsonlite)
 library(shinyjs)
+library(uuid)
+
+duplicate_folder_with_uuid <- function(src_path,src_folder) {
+  source_actual<-file.path(src_path, basename(src_folder))
+  if (!dir.exists(source_actual)) stop("Source folder does not exist")
+  
+  # Generate UUID prefix
+  id <- UUIDgenerate()
+  
+  # Extract original folder name
+  base_name <- basename(src_folder)
+  random_folder_name<-paste0("p",id, "_", base_name)
+  
+  # Create new folder name
+  new_folder <- file.path(src_path, random_folder_name)
+  
+  # Recursively copy
+  dir.create(new_folder)
+  file.copy(list.files(source_actual, full.names = TRUE), new_folder, recursive = TRUE)
+  
+  return(random_folder_name)
+}
 
 
+erase<-function(processes_folder,script_folder){
+  
+  cat("erasing folder\n")
+  
+  is_p_uuid <- grepl(
+    "^p[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+    script_folder
+  )
+  
+  foldertodel<-paste0(processes_folder,"/",script_folder)
+  
+  if (is_p_uuid && dir.exists(foldertodel)) {
+    cat("cleaning all in process script folder",script_folder,"\n")  
+    # Delete all files inside, but keep the folder
+    unlink(foldertodel, recursive = TRUE)
+  }
+  
+  cat("erasing done\n")
+}
 
-cleanup<-function(script_folder,params=NULL){
+
+cleanup<-function(script_folder,processes_folder,params=NULL){
   www_folder<-"www"
   cat("cleaning all in process folder",script_folder,"\n")
   if (dir.exists(www_folder)) {
-    
-    # Delete all files inside, but keep the folder
-    unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
+      files <- list.files(www_folder, full.names = TRUE)
+      
+      for (f in files) {
+        if (file.exists(f)) {
+          mod_time <- file.info(f)$mtime
+          cat("process",f,"was last modified on",mod_time," \n")
+          age_days <- as.numeric(difftime(Sys.time(), mod_time, units = "days"))
+          cat("age: ",age_days,"days \n")
+          
+          if (age_days > 1) {
+            unlink(f,recursive = T)  # delete the file
+            cat("Deleted old folder:", f, "\n")
+          }
+        }
+      }
+      
+    #unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
   }
   
-  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug|tmp)$", full.names = TRUE)
+  #aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug|tmp)$", full.names = TRUE)
   
   # Delete them
-  if (length(aux_files) > 0) {
-    unlink(aux_files)
-  }
+  #if (length(aux_files) > 0) {
+   # unlink(aux_files)
+  #}
   
   #aux_folder <- list.files(script_folder, pattern = "\\output$", full.names = TRUE)
   
-  unlink(paste0(script_folder,"output"), recursive = TRUE)
+  #unlink(paste0(script_folder,"output"), recursive = TRUE)
 
+  
+  cat("erasing hung processes in",processes_folder,"\n")
+  
+  if (dir.exists(processes_folder)) {
+    filesProc <- list.files(processes_folder, full.names = TRUE)
+  
+    for (f in filesProc) {
+      if (file.exists(f)){
+        is_p_uuid <- grepl(
+          "^p[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+          basename(f)
+        )
+        if (is_p_uuid){
+        mod_time <- file.info(f)$mtime
+        cat("process hung",f,"was last modified on",mod_time," \n")
+        age_days <- as.numeric(difftime(Sys.time(), mod_time, units = "days"))
+        cat("age: ",age_days,"days \n")
+        
+        if (age_days > 1) {
+          unlink(f,recursive = T)  # delete the file
+          cat("Deleted old process:", f, "\n")
+        }
+      }}
+    }
+  }
   cat("cleaning done\n")
 }
 
@@ -68,7 +149,7 @@ read_properties <- function(filepath) {
   return(props)
 }
 
-config_file<-"config.properties"
+config_file<-"./configurations/config.properties"
 config_from_outside <<- getOption("APP_HEADER", config_file)
 if(!is.null(config_from_outside))
   config_file<-config_from_outside
@@ -89,8 +170,10 @@ properties <<- read_properties(config_file)
 header<<- properties[["header"]]
 description<<- properties[["description"]]
 process_to_call<<- properties[["process"]]
+process_folder<<- properties[["process_folder"]]
 
 script_folder<<-"./processes/"
+wrapper_folder<<-"./wrappers/"
 local_tmp_data_folder<<-"./tmp_data/"
 cb_list<<-list(useShinyjs())
 all_inputs<<-c()
@@ -255,7 +338,7 @@ for (k in 1:length(properties)){
 
 cbl <- do.call(card_body, cb_list)
 
-cleanup(script_folder,NULL)
+cleanup(script_folder,script_folder,NULL)
 
 ui <- grid_page(
   tags$head(
@@ -486,7 +569,7 @@ server <- function(input, output, session) {
     }
     
     cat("params:",paste(params),"\n")   # for debugging
-    cleanup(script_folder,params)
+    #cleanup(script_folder,params)
     expected_outputs<-execute(script_folder,params)
     
     downloadResults(expected_outputs,output)
@@ -506,8 +589,14 @@ execute<-function(script_folder,params){
   
   cat("#calling the external process\n")
   #source("callProcess.R", local = TRUE)
-  source(process_to_call, local = TRUE)
-  expected_outputs<-doCall(script_folder,params)
+  cat("Preparing sandbox..\n")
+  previous_process_folder<<-process_folder
+  process_folder <<- duplicate_folder_with_uuid(script_folder,process_folder)
+  cat("Sandbox done: ", process_folder, "\n")
+  
+  source(paste0(wrapper_folder,process_to_call), local = TRUE)
+  script_sandbox<-paste0(script_folder,process_folder)
+  expected_outputs<-doCall(script_sandbox,params)
   cat("#process called\n")
   cat("output:",expected_outputs,"\n")
   return(expected_outputs)
@@ -528,23 +617,31 @@ downloadResults<- function(expected_outputs,output){
     
     tl<-tagList()
     idx<-1
+    outfol<-file.path("www",process_folder)
+    if (!file.exists(outfol))
+      dir.create(outfol)
+              
+    #PREPARATION OF THE BUTTONS TO DISPLAY
     for(outputf in expected_outputs){
-      out_path <- paste0(script_folder, outputf)
+      #out_path <- paste0(script_folder, outputf)
+      out_path<-paste0(script_folder,"/",process_folder,"/",outputf)
+      cat("checking output: ",file.exists(out_path),"\n")
       if (file.exists(out_path)){
         cat("copying ",out_path,"\n")
-        target_out<-paste0("www/",basename(outputf))
+        target_out<-file.path(outfol,basename(outputf))
+        cat("to ",target_out,"\n")
         file.copy(file.path(out_path), target_out, overwrite = TRUE)
         if (is_image(out_path)){
           sub_tag<-tagList(
-            tags$img(src = basename(outputf), width = "100%", style = "max-height:400px; object-fit:contain;"),
+            tags$img(src = file.path(process_folder,basename(outputf)), width = "100%", style = "max-height:400px; object-fit:contain;"),
             tags$div(style = "margin-top: 1rem;"),
-            downloadButton(paste0("download_",idx), paste0("Download ",basename(outputf))),
+            downloadButton(paste0("download_",idx), paste0(basename(outputf))),
             tags$div(style = "margin-top: 1rem;")
           )
           
         }else{
           sub_tag<-tagList(
-            downloadButton(paste0("download_",idx), paste0("Download ",basename(outputf))),
+            downloadButton(paste0("download_",idx), paste0(basename(outputf))),
             tags$div(style = "margin-top: 1rem;")
           )  
         }
@@ -565,6 +662,7 @@ downloadResults<- function(expected_outputs,output){
       tl
     })
     
+    #OPERATION OF THE BUTTONS TO DISPLAY
     idx<-1
     for(outputf in expected_outputs){
       if (file.exists(out_path)){
@@ -577,7 +675,7 @@ downloadResults<- function(expected_outputs,output){
           output[[paste0("download_", idx_fixed)]] <- downloadHandler(
             filename = function() basename(outputf_fixed),
             content = function(file) {
-              file.copy(file.path("www", outputf_fixed), file, overwrite = TRUE)
+              file.copy(file.path(outfol, outputf_fixed), file, overwrite = TRUE)
             }
           )
         })
@@ -586,6 +684,8 @@ downloadResults<- function(expected_outputs,output){
       }  
     }#downloading
     
+    erase(script_folder, process_folder) 
+    process_folder<<-previous_process_folder
   }
   
     

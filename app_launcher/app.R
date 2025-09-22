@@ -23,8 +23,10 @@ read_properties <- function(filepath) {
   return(props)
 }
 
+config_paths<<-"configurations/"
+
 config_files<-list.files(
-  path = "../",          # or specify another folder
+  path = paste0("../",config_paths),
   pattern = "^config_", 
   full.names = TRUE    # TRUE = returns full path, FALSE = just file names
 )
@@ -93,12 +95,12 @@ server <- function(input, output) {
   
   observeEvent(input$launch_method, {
     idx <- which(input$mselection == applications)
-    header_file <- config_files[idx]
+    header_file <- file.path(config_paths,basename(config_files[idx]))
 
-    cmd <- paste0("Rscript -e \"library(shiny); setwd('../'); options(APP_HEADER='",basename(header_file),"', APP_FOLDER='./'); shiny::runApp('./', launch.browser = TRUE)\"")
+    cmd <- paste0("Rscript -e \"library(shiny); setwd('../'); options(APP_HEADER='",header_file,"', APP_FOLDER='./'); shiny::runApp('./', launch.browser = TRUE)\"")
     cat("App command to launch",cmd,"\n")
     # Launch asynchronously
-    system(cmd, wait = F)
+    system(cmd, wait = T)
 
     showNotification("Method launched!", type = "message")
   })
