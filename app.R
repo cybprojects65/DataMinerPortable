@@ -68,7 +68,24 @@ read_properties <- function(filepath) {
   return(props)
 }
 
-properties <<- read_properties("config.properties")
+config_file<-"config.properties"
+config_from_outside <<- getOption("APP_HEADER", config_file)
+if(!is.null(config_from_outside))
+  config_file<-config_from_outside
+
+cat("Initialising app on",config_file,"\n")
+
+app_folder<-"./"
+app_folder_from_outside <<- getOption("APP_FOLDER", app_folder)
+
+if(!is.null(app_folder_from_outside))
+  app_folder<-app_folder_from_outside
+
+
+
+#setwd(app_folder)
+
+properties <<- read_properties(config_file)
 header<<- properties[["header"]]
 description<<- properties[["description"]]
 process_to_call<<- properties[["process"]]
@@ -83,11 +100,13 @@ input_file_vars<<-c()
 input_file_vars_uploaded<<-c()
 column_vars<<-c()
 column_vars_references<<-c()
+single_column_vars<<-c()
+single_column_vars_references<<-c()
 
 for (k in 1:length(properties)){
   key <- names(properties)[k]
   v <- properties[[k]]
-  if (grepl("text_area_*", key, perl = TRUE)){
+  if (grepl("^text_area_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     # Remove quotes
     parts <- gsub('^"|"$', '', parts)
@@ -102,7 +121,7 @@ for (k in 1:length(properties)){
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
       
-  }else if (grepl("numeric_*", key, perl = TRUE)){
+  }else if (grepl("^numeric_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     # Remove quotes
     parts <- gsub('^"|"$', '', parts)
@@ -126,7 +145,7 @@ for (k in 1:length(properties)){
     
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
-  } else if (grepl("select_input_*", key, perl = TRUE)){
+  } else if (grepl("^select_input_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     # Remove quotes
     parts <- gsub('^"|"$', '', parts)
@@ -148,7 +167,7 @@ for (k in 1:length(properties)){
     )
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
-  }  else if (grepl("bounding_box_*", key, perl = TRUE)){
+  }  else if (grepl("^bounding_box_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     # Remove quotes
     parts <- gsub('^"|"$', '', parts)
@@ -172,7 +191,7 @@ for (k in 1:length(properties)){
     needs_map<<-T
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
-  } else if (grepl("file_input*", key, perl = TRUE)){
+  } else if (grepl("^file_input*", key, perl = TRUE)){
     parts <- v
     # Remove quotes
     parts <- gsub('^"|"$', '', parts)
@@ -192,7 +211,7 @@ for (k in 1:length(properties)){
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
     
-  }else if (grepl("column_selection_*", key, perl = TRUE)){
+  }else if (grepl("^column_selection_*", key, perl = TRUE)){
     parts <- strsplit(v, ",")[[1]]
     parts <- gsub('^"|"$', '', parts)
     reference<-parts[1]
@@ -206,6 +225,25 @@ for (k in 1:length(properties)){
     
     column_vars<<-c(column_vars,key)
     column_vars_references<<-c(column_vars_references,reference)
+    
+    all_inputs<<-c(all_inputs,key)
+    cb_list[[length(cb_list) + 1]] <- i
+  }else if (grepl("^single_column_selection_*", key, perl = TRUE)){
+    parts <- strsplit(v, ",")[[1]]
+    parts <- gsub('^"|"$', '', parts)
+    reference<-parts[1]
+    lab<-parts[2]
+    
+    i <- radioButtons(
+      inputId = key,
+      label = lab,
+      choices = list(),
+      selected = character(0) # start with none selected
+    )
+    
+    
+    single_column_vars<<-c(single_column_vars,key)
+    single_column_vars_references<<-c(single_column_vars_references,reference)
     
     all_inputs<<-c(all_inputs,key)
     cb_list[[length(cb_list) + 1]] <- i
@@ -355,9 +393,9 @@ server <- function(input, output, session) {
           cat("User uploaded:", uploader_path, "\n")
           local_path<-paste0(local_tmp_data_folder, input[[file]]$name)
           
-           ref<-1
+          ref<-1
           for (reference in column_vars_references){
-            cat("filecheck:",reference,"vs",file,"\n")
+            cat("filecheck ref cols:",reference,"vs",file,"\n")
             if (reference==file){
               itemid<-column_vars[ref]
               #cat("itemid:",itemid,"\n")
@@ -373,7 +411,31 @@ server <- function(input, output, session) {
               }
             }
             ref<-ref+1
-          }#end for on references
+          }
+            
+            ref<-1
+            for (reference in single_column_vars_references){
+              cat("filecheck ref single col:",reference,"vs",file,"\n")
+              if (reference==file){
+                itemid<-single_column_vars[ref]
+                #cat("itemid:",itemid,"\n")
+                if ( (tolower(tools::file_ext(uploader_path)) == "csv") && (file.size(uploader_path)>0)
+                ){
+                  headers <- names(read.csv(uploader_path, nrows = 0))
+                  updateRadioButtons(
+                    session,
+                    inputId = itemid,
+                    choices = headers,
+                    selected = headers[1]
+                  )
+                }
+              }
+            
+              ref<-ref+1
+            }
+            
+            
+          
         }#end if check on the current file update
         
        fidx<-fidx+1
@@ -474,7 +536,7 @@ downloadResults<- function(expected_outputs,output){
         file.copy(file.path(out_path), target_out, overwrite = TRUE)
         if (is_image(out_path)){
           sub_tag<-tagList(
-            tags$img(src = target_out, width = "100%", style = "max-height:400px; object-fit:contain;"),
+            tags$img(src = basename(outputf), width = "100%", style = "max-height:400px; object-fit:contain;"),
             tags$div(style = "margin-top: 1rem;"),
             downloadButton(paste0("download_",idx), paste0("Download ",basename(outputf))),
             tags$div(style = "margin-top: 1rem;")

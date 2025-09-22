@@ -21,9 +21,9 @@ doCall<-function(script_folder,params){
     source("BIMAC.R", local = TRUE)
     cat("End - Executing the script\n")
     
-    files <- list.files("your_folder", full.names = TRUE)
+    files <- list.files(script_folder, full.names = TRUE)
     # match anything that has characters before "gebco_30sec_8"
-    to_delete <- files[grepl("^[^/]*_gebco_30sec_8$", basename(files))]
+    to_delete <- files[grepl("^[^/]*_gebco_30sec_8.asc$", basename(files))]
     file.remove(to_delete)
     
     c("./output/BIMAC_interpolation.asc","./output/BIMAC_interpolation_sd.asc","./output/BIMAC_IDW_prior.asc")
