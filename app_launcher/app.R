@@ -97,8 +97,24 @@ server <- function(input, output) {
     idx <- which(input$mselection == applications)
     header_file <- file.path(config_paths,basename(config_files[idx]))
 
+    #methodpath<-('../')
+    #currentwd<-getwd()
+    #setwd(methodpath)
+    #options("APP_HEADER='",header_file,"'")
+    #source(file.path("app.R"), local = TRUE)
+    #showNotification(paste("Method", applications[idx], "loaded!"))
+    #setwd(currentwd)
+    
+    
+    #newport<-sample(3838:3850, 1)
+    newport<-3840
+    cat("new port is:",newport,"\n")
+    
+    #cmd <- paste0("Rscript -e \"library(shiny); setwd('../'); options(APP_HEADER='",header_file,"', APP_FOLDER='./'); shiny::runApp('./', launch.browser = TRUE, port=",newport,")\"")
+    
     cmd <- paste0("Rscript -e \"library(shiny); setwd('../'); options(APP_HEADER='",header_file,"', APP_FOLDER='./'); shiny::runApp('./', launch.browser = TRUE)\"")
-    cat("App command to launch",cmd,"\n")
+    
+    cat("App command to launch: ",cmd,"\n")
     # Launch asynchronously
     system(cmd, wait = T)
 
@@ -106,6 +122,29 @@ server <- function(input, output) {
   })
 
 }
+
+
+find_free_port <- function(start = 3000, end = 4000) {
+  cat("searching for a new port\n")
+  for (port in start:end) {
+    con <- try(socketConnection(
+      host = "0.0.0.0",
+      port = port,
+      server = TRUE,
+      blocking = TRUE,
+      open = "r+"
+    ), silent = TRUE)
+    
+    if (!inherits(con, "try-error")) {
+      close(con)
+      cat("new port found:")
+      print(con)
+      return(port)
+    }
+  }
+  stop("No free port found in the specified range")
+}
+
 shinyApp(ui, server)
   
 

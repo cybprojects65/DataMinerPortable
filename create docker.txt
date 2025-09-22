@@ -1,0 +1,15 @@
+docker build -t pseudo_absence_generator .
+docker images
+docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
+
+#docker tag 7fab417ea229 pseudo_absence_generator:1.0
+#docker run -it --rm -p 3838:3838 pseudo_absence_generator:1.0
+
+
+docker build -t pseudo_absence_generator .
+docker images
+docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
+
+docker build -t dataminer_portable .
+
+
