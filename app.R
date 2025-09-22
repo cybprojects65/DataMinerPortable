@@ -19,7 +19,7 @@ cleanup<-function(script_folder,params=NULL){
     unlink(list.files(www_folder, full.names = TRUE), recursive = TRUE)
   }
   
-  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug)$", full.names = TRUE)
+  aux_files <- list.files(script_folder, pattern = "\\.(csv|png|dat|Rdata|txt|bug|tmp)$", full.names = TRUE)
   
   # Delete them
   if (length(aux_files) > 0) {
