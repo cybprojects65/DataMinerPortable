@@ -45,6 +45,7 @@ build_method_list<-function(applications,app_descriptions){
     eidx<-eidx+1
     appidx<-appidx+1
   }
+  
   return(button_list)
 }
 

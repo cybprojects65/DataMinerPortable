@@ -35,12 +35,51 @@ for (f in cleaned){
 }
 #####END READ configuration and build the method list
 
+build_method_list2<-function(applications,app_descriptions){
+  appidx<-1
+  button_list<-list(useShinyjs())
+  eidx<-1
+  for (i in 1:length(applications)){
+    button_list[[eidx]]<-tags$em(paste0(substr(app_descriptions[i], 1, 34), ".."))
+    eidx<-eidx+1
+    button_list[[eidx]]<-actionButton(inputId = paste0("method_",i), label = applications[i],class = "btn btn-primary")
+    eidx<-eidx+1
+    appidx<-appidx+1
+  }
+  button_list[[length(button_list)+1]]<-
+    # After your actionButtons are created, add this generic script once
+    tags$script(HTML("
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('[JS] DOMContentLoaded - attaching handlers');
+
+    // Select all buttons with IDs starting with 'method_'
+    var buttons = document.querySelectorAll('button[id^=\"method_\"]');
+
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var methodId = btn.id; 
+        console.log('[JS] ' + methodId + ' clicked - saving to localStorage');
+        try {
+          localStorage.setItem('selected_method', methodId);
+        } catch (e) {
+          console.error('[JS] localStorage set error', e);
+        }
+        setTimeout(function() { location.reload(); }, 50);
+      });
+    });
+  });
+"))
+  
+  
+  return(button_list)
+}
+
 #build the methods list
-methods<-build_method_list(applications,app_descriptions)
+methods<-build_method_list2(applications,app_descriptions)
 
 #clean old folders
 cleanup(public_folder,script_folder)
-  
+
 ui <- grid_page(
   layout = c(
     "header  header",
@@ -60,7 +99,48 @@ ui <- grid_page(
     area = "sidebar",
     card_header("Methods"),
     card_body(
-      methods
+      methods,
+      tags$script(HTML("
+(function() {
+  function restoreMethod() {
+    try {
+      console.log('[JS] attempting restore');
+      var method = localStorage.getItem('selected_method');
+      console.log('[JS] localStorage selected_method =', method);
+      if (method) {
+        if (window.Shiny && typeof Shiny.setInputValue === 'function') {
+          console.log('[JS] calling Shiny.setInputValue(restored_method,', method, ')');
+          Shiny.setInputValue('restored_method', method, {priority: 'event'});
+          localStorage.removeItem('selected_method');
+          return true; // success
+        } else if (window.Shiny && typeof Shiny.onInputChange === 'function') {
+          console.log('[JS] calling Shiny.onInputChange(restored_method,', method, ')');
+          Shiny.onInputChange('restored_method', method);
+          localStorage.removeItem('selected_method');
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error('[JS] error restoring selected_method', err);
+    }
+    return false; // not yet successful
+  }
+
+  // Try immediately
+  if (!restoreMethod()) {
+    console.log('[JS] Shiny not ready, will retry...');
+    var tries = 0;
+    var interval = setInterval(function() {
+      tries++;
+      if (restoreMethod() || tries > 5) {
+        clearInterval(interval);
+      }
+    }, 200);
+  }
+})();
+"))
+      
+      
     )
   ),
   #HEADER
@@ -97,15 +177,19 @@ server <- function(input, output, session) {
   for (i in 1:length(methods)) {
     local({
       action_id <- paste0("method_", i)
-      observeEvent(input[[action_id]], {
-        selected_method(action_id)
-      })
+      #observeEvent(input[[action_id]], {
+       # selected_method(action_id)
+      #})
     })
   }
   
+  observeEvent(input$restored_method, { 
+    cat("Restored method:", input$restored_method, "\n") 
+    selected_method(input$restored_method)
+    })
   
   observeEvent(input$reset_bb, {
-    cat("Reset pressed\n")
+   # cat("Reset pressed\n")
     # "Re-select" the current method to trigger the same logic as clicking a sidebar button
     #dummy <- "RESET"
     #current(selected_method())
@@ -141,7 +225,7 @@ server <- function(input, output, session) {
                    width = "50%", disabled = "disabled"),
       uiOutput("results_panel")
     )
-
+    
     tagl
   })
   
@@ -187,7 +271,7 @@ server <- function(input, output, session) {
           map_event <- paste0(map_id, "_draw_new_feature")
           bounding_box_input_var <- sub("_map$", "", map_id)
           
-         observeEvent(input[[map_event]], {
+          observeEvent(input[[map_event]], {
             feat <- input[[map_event]]
             if (!is.null(feat)) {
               geojson_text <- jsonlite::toJSON(list(
@@ -260,12 +344,12 @@ server <- function(input, output, session) {
               )
             }
           }
-           ref<-ref+1
+          ref<-ref+1
         }
       }
     }#end check on the existence of files to upload
   })
-
+  
   #observing inputs to activate execution button
   observe({
     req(input_parameters_session())
@@ -286,8 +370,8 @@ server <- function(input, output, session) {
         
         if (is.null(val) || (is.data.frame(val) && dim(val)[1]==0) || (is.vector(val) && length(val)==0)
             || (is.character(val) && nchar(paste0(val,collapse = ""))==0) || (is.numeric(val) && is.na(val))) {
-
-            all_filled <- FALSE
+          
+          all_filled <- FALSE
           break
         }
         filled_params[[length(filled_params)+1]]<-key
@@ -300,11 +384,11 @@ server <- function(input, output, session) {
         removeClass("start_computation", "btn-secondary")
         addClass("start_computation", "btn-primary")
         input_values_fulfilled(list(
-                                  filled_params=filled_params,
-                                  filled_values=filled_values,
-                                  process_to_call=input_parameters_session()$process_to_call,
-                                  process_folder=input_parameters_session()$process_folder
-                                    ))
+          filled_params=filled_params,
+          filled_values=filled_values,
+          process_to_call=input_parameters_session()$process_to_call,
+          process_folder=input_parameters_session()$process_folder
+        ))
       } else {
         cat("disabling the button\n")
         disable("start_computation")
@@ -413,13 +497,13 @@ downloadResults <- function(expected_outputs, output, process_folder) {
       }
     }
     
-   runjs("
+    runjs("
     var el = document.getElementById('results_panel');
     if(el){
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     ")
-   
+    
     erase(script_folder, process_folder)
   }
 }
@@ -427,5 +511,5 @@ downloadResults <- function(expected_outputs, output, process_folder) {
 
 
 shinyApp(ui, server)
-  
+
 
