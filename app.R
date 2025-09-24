@@ -154,10 +154,10 @@ ui <- grid_page(
     var tries = 0;
     var interval = setInterval(function() {
       tries++;
-      if (restoreMethod() || tries > 10) {
+      if (restoreMethod() || tries > 1) {
         clearInterval(interval);
       }
-    }, 200);
+    }, 500);
   }
 })();
 "))

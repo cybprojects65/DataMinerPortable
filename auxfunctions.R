@@ -1,7 +1,7 @@
 
 decimal_places <- function(x) {
   # Convert number to character
-  x_char <- format(x, scientific = FALSE, trim = TRUE)
+  x_char <- paste0("",x)#format(x, scientific = FALSE, trim = F)
   
   # Split at decimal point
   parts <- strsplit(x_char, ".", fixed = TRUE)[[1]]
@@ -89,7 +89,7 @@ build_input_list<-function(applications,selected_id,config_paths){
         label = lab, 
         value = val, 
         currencySymbolPlacement = "p",
-        decimalPlaces = decimal_places(as.numeric(val)),
+        decimalPlaces = decimal_places(val),
         digitGroupSeparator = ",",
         decimalCharacter = ".",
         width = "50%",
