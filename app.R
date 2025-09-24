@@ -74,6 +74,7 @@ build_method_list<-function(applications,app_descriptions){
   return(button_list)
 }
 
+
 #build the methods list
 methods<-build_method_list(applications,app_descriptions)
 
@@ -81,6 +82,27 @@ methods<-build_method_list(applications,app_descriptions)
 cleanup(public_folder,script_folder)
 
 ui <- grid_page(
+  tags$div(
+    id = "loading_overlay",
+    style = "
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 9999;
+    text-align: center;
+    color: white;
+    font-size: 2em;
+    padding-top: 20%;
+  ",
+    tags$div(
+      class = "spinner-border text-light",
+      role = "status",
+      tags$span(class = "visually-hidden", "Loading...")
+    ),
+    "Please wait, computation running..."
+  )
+  ,
   layout = c(
     "header  header",
     "sidebar plot  "
@@ -166,6 +188,15 @@ server <- function(input, output, session) {
   cat("###session:")
   print(session$token)
   cat("###")
+  
+  showOverlay <- function() {
+    runjs("document.getElementById('loading_overlay').style.display='block';")
+  }
+  
+  hideOverlay <- function() {
+    runjs("document.getElementById('loading_overlay').style.display='none';")
+  }
+  
   
   #session variables
   selected_method <- reactiveVal(NULL)
@@ -398,6 +429,10 @@ server <- function(input, output, session) {
   observeEvent(input$start_computation, {
     req(input_parameters_session())
     req(input_values_fulfilled)
+    
+    showOverlay()
+    on.exit(hideOverlay())
+    
     showNotification("Computation started...", type = "message")
     
     filled_values<-input_values_fulfilled()
