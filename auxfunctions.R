@@ -133,21 +133,38 @@ build_input_list<-function(applications,selected_id,config_paths){
         li<-c(li,cc)
         cat(cc,"\n")
       }
+      # Wrap the map in a div that enforces height
       
-      j <- leafletOutput(outputId = paste0(key, "_map"), height = "400px")
+      map_div <-
+        tags$div(
+          style = "
+    display: flex;          /* ensure flex layout */
+    flex-direction: column; /* stack children vertically */
+    min-height: 400px;      /* minimum height so it shows */
+    height: 50vh;           /* optional: scales with viewport */
+    margin-bottom: 1em;", 
+          leafletOutput(paste0(key, "_map"), width = "100%", height = "100%")
+          
+        )
       
-      i<-textInput(
-        inputId = key,
-        label = lab,
-        value = val,
-        width = "100%"
+      text_div <- tags$div(
+        style = "margin-bottom: 1rem;",
+        textInput(
+          inputId = key,
+          label = lab,
+          value = val,
+          width = "100%"
+        )
       )
+      
+      
       bounding_box_input_var<-key
       needs_map<-T
-      #all_inputs<-c(all_inputs,paste0(key, "_map"),key)
+      
       all_inputs<-c(all_inputs,paste0(key, "_map"),key)
-      cb_list[[length(cb_list) + 1]] <- j
-      cb_list[[length(cb_list) + 1]] <- i
+      cb_list[[length(cb_list) + 1]] <- map_div
+      cb_list[[length(cb_list) + 1]] <- text_div      
+      
     } else if (grepl("^file_input*", key, perl = TRUE)){
       parts <- v
       # Remove quotes
@@ -206,24 +223,25 @@ build_input_list<-function(applications,selected_id,config_paths){
       cb_list[[length(cb_list) + 1]] <- i
     }
   }
-
+  
   return(list(
     header=header,
     description=description,
     process_to_call=process_to_call,
     process_folder=process_folder,
     cb_list=cb_list,
-         all_inputs=all_inputs,
-         needs_map=needs_map,
-         bounding_box_input_var=bounding_box_input_var,
-         input_file_vars=input_file_vars,
-         input_file_vars_uploaded=input_file_vars_uploaded,
-         column_vars=column_vars,
-         column_vars_references=column_vars_references,
+    all_inputs=all_inputs,
+    needs_map=needs_map,
+    bounding_box_input_var=bounding_box_input_var,
+    input_file_vars=input_file_vars,
+    input_file_vars_uploaded=input_file_vars_uploaded,
+    column_vars=column_vars,
+    column_vars_references=column_vars_references,
     single_column_vars=single_column_vars,
     single_column_vars_references=single_column_vars_references
-    ))
+  ))
 }
+
 
 duplicate_folder_with_uuid <- function(src_path,src_folder) {
   cat("poppy\n")

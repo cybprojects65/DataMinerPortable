@@ -154,7 +154,7 @@ ui <- grid_page(
     var tries = 0;
     var interval = setInterval(function() {
       tries++;
-      if (restoreMethod() || tries > 5) {
+      if (restoreMethod() || tries > 10) {
         clearInterval(interval);
       }
     }, 200);
@@ -204,23 +204,15 @@ server <- function(input, output, session) {
   input_parameters_session <- reactiveVal(NULL)
   reset_trigger <- reactiveVal(0)
   
-  #build observer for the methods in the left panel
-  for (i in 1:length(methods)) {
-    local({
-      action_id <- paste0("method_", i)
-      #observeEvent(input[[action_id]], {
-       # selected_method(action_id)
-      #})
-    })
-  }
-  
+  #manage local client storage variable to fire an event
   observeEvent(input$restored_method, { 
     cat("Restored method:", input$restored_method, "\n") 
     selected_method(input$restored_method)
-    })
+  })
   
+  #reset button
   observeEvent(input$reset_bb, {
-
+    
     cat("Resetting method to",selected_method(),"\n")
     methodname<-as.character(selected_method())
     runjs(paste0("localStorage.setItem('selected_method', '",methodname,"'); location.reload();"))
@@ -255,6 +247,7 @@ server <- function(input, output, session) {
     tagl
   })
   
+  
   # Render maps
   observe({
     req(input_parameters_session())
@@ -278,6 +271,7 @@ server <- function(input, output, session) {
                 rectangleOptions = drawRectangleOptions()
               )
           })
+          
         })
       }
     }
