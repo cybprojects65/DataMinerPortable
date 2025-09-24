@@ -34,20 +34,6 @@ read_properties <- function(filepath) {
   return(props)
 }
 
-build_method_list<-function(applications,app_descriptions){
-  appidx<-1
-  button_list<-list(useShinyjs())
-  eidx<-1
-  for (i in 1:length(applications)){
-    button_list[[eidx]]<-tags$em(paste0(substr(app_descriptions[i], 1, 34), ".."))
-    eidx<-eidx+1
-    button_list[[eidx]]<-actionButton(inputId = paste0("method_",i), label = applications[i],class = "btn btn-primary")
-    eidx<-eidx+1
-    appidx<-appidx+1
-  }
-  
-  return(button_list)
-}
 
 build_input_list<-function(applications,selected_id,config_paths){
   if (selected_id == "RESET")

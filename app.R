@@ -35,7 +35,7 @@ for (f in cleaned){
 }
 #####END READ configuration and build the method list
 
-build_method_list2<-function(applications,app_descriptions){
+build_method_list<-function(applications,app_descriptions){
   appidx<-1
   button_list<-list(useShinyjs())
   eidx<-1
@@ -75,7 +75,7 @@ build_method_list2<-function(applications,app_descriptions){
 }
 
 #build the methods list
-methods<-build_method_list2(applications,app_descriptions)
+methods<-build_method_list(applications,app_descriptions)
 
 #clean old folders
 cleanup(public_folder,script_folder)
@@ -189,16 +189,11 @@ server <- function(input, output, session) {
     })
   
   observeEvent(input$reset_bb, {
-   # cat("Reset pressed\n")
-    # "Re-select" the current method to trigger the same logic as clicking a sidebar button
-    #dummy <- "RESET"
-    #current(selected_method())
-    #isolate({
-    # selected_method(dummy)
-    #})
-    #TODO: write current method locally and read it
-    
-    runjs("location.reload();")
+
+    cat("Resetting method to",selected_method(),"\n")
+    methodname<-as.character(selected_method())
+    runjs(paste0("localStorage.setItem('selected_method', '",methodname,"'); location.reload();"))
+    #runjs("location.reload();")
     
     #selected_method(current())
   })
