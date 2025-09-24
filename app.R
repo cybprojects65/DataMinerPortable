@@ -321,60 +321,65 @@ server <- function(input, output, session) {
   # build radio and selection items based on table input
   observe({
     req(input_parameters_session())
-    input_file_vars<-input_parameters_session()$input_file_vars
-    #check for file uploading
-    if (length(input_file_vars)>0){
-      #check for input update
-      cat("Checking for uploaded inputs\n")
-      fidx<-1
-      for (file in input_file_vars){
-        req(input[[file]])
-        uploader_path <- input[[file]]$datapath
-        cat("User uploaded:", uploader_path, "\n")
-        column_vars<-input_parameters_session()$column_vars
-        column_vars_references<-input_parameters_session()$column_vars_references
-        single_column_vars_references<-input_parameters_session()$single_column_vars_references
-        single_column_vars<-input_parameters_session()$single_column_vars
-        ref<-1
-        for (reference in column_vars_references){
-          cat("filecheck ref cols:",reference,"vs",file,"\n")
-          if (reference==file){
-            itemid<-column_vars[ref]
-            if ( (tolower(tools::file_ext(uploader_path)) == "csv") && (file.size(uploader_path)>0)
-            ){
-              headers <- names(read.csv(uploader_path, nrows = 0))
-              updateCheckboxGroupInput(
-                session,
-                inputId = itemid,
-                choices = headers, # new choices
-                selected = headers[1]                 # optional default selection
-              )
+    input_file_vars <- input_parameters_session()$input_file_vars
+    
+    if (length(input_file_vars) > 0) {
+      for (file in input_file_vars) {
+        local({
+          file_id <- file
+          observeEvent(input[[file_id]], {
+            req(input[[file_id]])
+            uploader_path <- input[[file_id]]$datapath
+            cat(">>> File input changed:", file_id, "\n")
+            cat("User uploaded:", uploader_path, "\n")
+            
+            # now re-use your existing logic
+            column_vars <- input_parameters_session()$column_vars
+            column_vars_references <- input_parameters_session()$column_vars_references
+            single_column_vars_references <- input_parameters_session()$single_column_vars_references
+            single_column_vars <- input_parameters_session()$single_column_vars
+            
+            ref <- 1
+            for (reference in column_vars_references) {
+              if (reference == file_id) {
+                itemid <- column_vars[ref]
+                if ((tolower(tools::file_ext(uploader_path)) == "csv") &&
+                    (file.size(uploader_path) > 0)) {
+                  headers <- names(read.csv(uploader_path, nrows = 0))
+                  updateCheckboxGroupInput(
+                    session,
+                    inputId = itemid,
+                    choices = headers,
+                    selected = headers[1]
+                  )
+                }
+              }
+              ref <- ref + 1
             }
-          }
-          ref<-ref+1
-        }
-        ref<-1
-        for (reference in single_column_vars_references){
-          cat("filecheck ref single col:",reference,"vs",file,"\n")
-          if (reference==file){
-            itemid<-single_column_vars[ref]
-            #cat("itemid:",itemid,"\n")
-            if ( (tolower(tools::file_ext(uploader_path)) == "csv") && (file.size(uploader_path)>0)
-            ){
-              headers <- names(read.csv(uploader_path, nrows = 0))
-              updateRadioButtons(
-                session,
-                inputId = itemid,
-                choices = headers,
-                selected = headers[1]
-              )
+            
+            ref <- 1
+            for (reference in single_column_vars_references) {
+              if (reference == file_id) {
+                itemid <- single_column_vars[ref]
+                if ((tolower(tools::file_ext(uploader_path)) == "csv") &&
+                    (file.size(uploader_path) > 0)) {
+                  headers <- names(read.csv(uploader_path, nrows = 0))
+                  updateRadioButtons(
+                    session,
+                    inputId = itemid,
+                    choices = headers,
+                    selected = headers[1]
+                  )
+                }
+              }
+              ref <- ref + 1
             }
-          }
-          ref<-ref+1
-        }
+          }, ignoreInit = TRUE)  # 🔑 prevents firing on app start
+        })
       }
-    }#end check on the existence of files to upload
+    }
   })
+  
   
   #observing inputs to activate execution button
   observe({

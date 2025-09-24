@@ -1,15 +1,57 @@
-docker build -t pseudo_absence_generator .
-docker images
-docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
-
+docker build -t dataminer_portable . (build starts from the Dockerfile file)
+#docker images
+#docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
 #docker tag 7fab417ea229 pseudo_absence_generator:1.0
 #docker run -it --rm -p 3838:3838 pseudo_absence_generator:1.0
 
+#from C:\Users\Utente\Ricerca\Experiments\Web interfaces executed:
 
-docker build -t pseudo_absence_generator .
-docker images
-docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
+docker run -it -v "%CD%":/home/docker/ --rm -p 3838:3838 dataminer_portable:latest bash
 
-docker build -t dataminer_portable .
+#installed the following by hand
+#packages installed
+sudo apt-get update
+sudo apt-get install jags -y
+sudo apt install default-jdk -y
 
+R 
 
+install.packages(c('dbscan', 'e1071', 'neuralnet'), repos='https://cloud.r-project.org/')
+
+install.packages('rjags')
+install.packages('R2jags')
+install.packages('coda')
+install.packages('plyr')
+install.packages('dplyr')
+install.packages('digest')
+install.packages('mclust')
+install.packages('dbscan')
+
+install.packages('shiny')
+install.packages('plotly')
+install.packages('gridlayout')
+install.packages('bslib')
+install.packages('leaflet')
+install.packages('leaflet.extras')
+install.packages('sf')
+install.packages('jsonlite')
+install.packages('shinyjs')
+install.packages('uuid')
+
+apt-get update && apt-get install -y \
+    libudunits2-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libv8-dev \
+    libfontconfig1-dev \
+    && rm -rf /var/lib/apt/lists/*
+	
+rm -rf *
+
+mkdir dataminer
+cp -r /home/docker/DataMinerPortable/* ./dataminer/
+
+R -e "shiny::runApp('dataminer', host='0.0.0.0', port=3838)"
+
+Pseudo Absence Generator
