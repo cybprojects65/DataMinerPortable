@@ -1,8 +1,7 @@
-docker build -t dataminer_portable . (build starts from the Dockerfile file)
+docker build -t dataminer_portable . (build starts from the Dockerfile_1 file)
 #docker images
-#docker run -it --rm -p 3838:3838 pseudo_absence_generator:latest
-#docker tag 7fab417ea229 pseudo_absence_generator:1.0
-#docker run -it --rm -p 3838:3838 pseudo_absence_generator:1.0
+#docker run -it --rm -p 3838:3838 dataminer_portable:latest
+
 
 #from C:\Users\Utente\Ricerca\Experiments\Web interfaces executed:
 
@@ -54,4 +53,22 @@ cp -r /home/docker/DataMinerPortable/* ./dataminer/
 
 R -e "shiny::runApp('dataminer', host='0.0.0.0', port=3838)"
 
-Pseudo Absence Generator
+docker container ls
+docker commit 99e835f716ac
+docker tag f4784ce2b233 dataminer_portable:last_stable
+
+docker build -t dataminer_portable .
+docker run -it --rm -p 3838:3838 dataminer_portable:latest
+
+docker tag 6370f317c586 gianpaolocoro/dataminer_portable:latest
+
+docker push gianpaolocoro/dataminer_portable:latest
+
+docker run -it --rm -p 3838:3838 gianpaolocoro/dataminer_portable:latest
+
+##########update and test after modifying app.R and other methods
+docker build -t gianpaolocoro/dataminer_portable .
+
+docker run -it --rm -p 3838:3838 gianpaolocoro/dataminer_portable:latest
+#if it works
+docker push gianpaolocoro/dataminer_portable:latest
