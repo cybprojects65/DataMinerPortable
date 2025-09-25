@@ -62,53 +62,41 @@ Input variables can be added, which will correspond to options, inputs, buttons,
 
 1.  numeric\_<N> (e.g., numeric_1): a numeric input, whose digit accuracy will be guessed from the input value
 
-Content: “<description>”,”
-
-<default value>
-
-”
+Content: "<description>","<default value>"
 
 Example: numeric_1="Minimum longitude of the bounding box of the projection","-0.25"
 
 2.  file_input\_<N>: an input file
 
-Content: “<description>”
+Content: "<description>"
 
 Example: file_input_1="Upload training set CSV file"
 
 3.  column_selection\_<N>: a multiple selection of the columns in the file (if this is a CVS file)
 
-Content:<reference file input variable>,“<description>”
+Content:<reference file input variable>,"<description>"
 
 Example: column_selection_1=file_input_1,"Input column(s)"
 
 4.  single_column_selection\_<N>: a single selection among the columns in the file (if this is a CVS file)
 
-Content:<reference file input variable>,“<description>”
+Content:<reference file input variable>,"<description>"
 
 Example: single_column_selection_1=file_input_1,"Column containing time information."
 
 5.  text_area\_<N>: a textual input, useful for structured inputs that can be provided as strings
 
-Content: “<description>”,”
-
-<default value>
-
-”
+Content: "<description>","<default value>""
 
 Example: text_area_1="Hidden neurons per layer (separated with pipe)","2\|2"
 
 6.  bounding_box\_<N>: a global map that allows the user to trace a bounding box that is reported in WKT format.
 
-Content: “<description>”,”
-
-<default value>
-
-”
+Content: "<description>","<default value>"
 
 Example: bounding_box_1="Bounding box",""
 
-At the start of the application, this will read all configuration files to automatically build the list of algorithms and then an interface for each algorithm.  
+At the start of the application, this will read all configuration files to automatically build the list of algorithms and then an interface for each algorithm.
 
 ## HOW TO UPDATE DATAMINER PORTABLE
 
@@ -133,8 +121,12 @@ CMD ["R", "-e", "shiny::runApp('dataminer', host='0.0.0.0', port=3838)"]
 
 3.  Execute the update:
 
+```         
     docker build -t gianpaolocoro/dataminer_portable .
+```
 
 4.  Update the docker hub:
 
+```         
     docker push gianpaolocoro/dataminer_portable:latest
+```

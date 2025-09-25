@@ -35,6 +35,7 @@ if (!file.exists("input_data_with_clusters.csv"))
 cat("results retrieved\n")
 setwd(old_wd)
 
-expected_outputs<<-result
+expected_outputs<-result
+return(expected_outputs)
 
 }

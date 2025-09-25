@@ -50,6 +50,6 @@ if (!file.exists(checkfile))
 cat("results retrieved\n")
 setwd(old_wd)
 
-expected_outputs<<-result
-
+expected_outputs<-result
+return(expected_outputs)
 }

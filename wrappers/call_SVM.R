@@ -38,6 +38,7 @@ if (!file.exists("training_set_with_projections.csv"))
 cat("results retrieved\n")
 setwd(old_wd)
 
-expected_outputs<<-result
+expected_outputs<-result
+return(expected_outputs)
 
 }
