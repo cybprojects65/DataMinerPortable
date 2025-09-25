@@ -10,7 +10,9 @@ Coro, G., Panichi, G., Scarponi, P., & Pagano, P. (2017). Cloud computing in a d
 
 2.  Execute:
 
+```         
     docker run -it --rm -p 3838:3838 gianpaolocoro/dataminer_portable:latest
+```
 
 ## HOW TO ADD A NEW METHOD
 
@@ -46,9 +48,9 @@ The doCall function should internally call the method, assuming that it is avail
 
 3.  Build a configuration file under “configurations” whose name that begins with “config\_”. This file should contain at least the following properties:
 
+```         
 process=<process wrapper name without the path> e.g., call_BIMAC_land.R
 
-```         
 process_folder=<the process folder created under processes> e.g., BIMAC
 
 header=<the full name of the algorithm> e.g., BIMAC Interpolator without constrains
@@ -60,39 +62,39 @@ Input variables can be added, which will correspond to options, inputs, buttons,
 
 *Input types:*
 
-1.  numeric\_<N> (e.g., numeric_1): a numeric input, whose digit accuracy will be guessed from the input value
+1.  numeric\_*N* (e.g., numeric_1): a numeric input, whose digit accuracy will be guessed from the input value
 
-Content: "<description>","<default value>"
+Content: "*description*","*default value*"
 
 Example: numeric_1="Minimum longitude of the bounding box of the projection","-0.25"
 
-2.  file_input\_<N>: an input file
+2.  file_input\_*N*: an input file
 
-Content: "<description>"
+Content: "*description*"
 
 Example: file_input_1="Upload training set CSV file"
 
-3.  column_selection\_<N>: a multiple selection of the columns in the file (if this is a CVS file)
+3.  column_selection\_*N*: a multiple selection of the columns in the file (if this is a CVS file)
 
-Content:<reference file input variable>,"<description>"
+Content: *reference file input variable*,"*description*"
 
 Example: column_selection_1=file_input_1,"Input column(s)"
 
-4.  single_column_selection\_<N>: a single selection among the columns in the file (if this is a CVS file)
+4.  single_column_selection\_*N*: a single selection among the columns in the file (if this is a CVS file)
 
-Content:<reference file input variable>,"<description>"
+Content: *reference file input variable*,"*description*"
 
 Example: single_column_selection_1=file_input_1,"Column containing time information."
 
-5.  text_area\_<N>: a textual input, useful for structured inputs that can be provided as strings
+5.  text_area\_*N*: a textual input, useful for structured inputs that can be provided as strings
 
-Content: "<description>","<default value>""
+Content: "*description*","*default value*""
 
 Example: text_area_1="Hidden neurons per layer (separated with pipe)","2\|2"
 
-6.  bounding_box\_<N>: a global map that allows the user to trace a bounding box that is reported in WKT format.
+6.  bounding_box\_*N*: a global map that allows the user to trace a bounding box that is reported in WKT format.
 
-Content: "<description>","<default value>"
+Content: "*description*","*default value*"
 
 Example: bounding_box_1="Bounding box",""
 
