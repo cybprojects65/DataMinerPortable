@@ -11,7 +11,9 @@ Coro, G., Panichi, G., Scarponi, P., & Pagano, P. (2017). Cloud computing in a d
 2.  Execute:
 
 ```         
-    docker run -it --rm -p 3838:3838 gianpaolocoro/dataminer_portable:latest
+docker pull gianpaolocoro/dataminer_portable:latest
+docker run -it --rm -p 3838:3838 gianpaolocoro/dataminer_portable:latest
+    
 ```
 
 ## HOW TO ADD A NEW METHOD
@@ -124,11 +126,11 @@ CMD ["R", "-e", "shiny::runApp('dataminer', host='0.0.0.0', port=3838)"]
 3.  Execute the update:
 
 ```         
-    docker build -t gianpaolocoro/dataminer_portable .
+docker build -t gianpaolocoro/dataminer_portable .
 ```
 
 4.  Update the docker hub:
 
 ```         
-    docker push gianpaolocoro/dataminer_portable:latest
+docker push gianpaolocoro/dataminer_portable:latest
 ```
