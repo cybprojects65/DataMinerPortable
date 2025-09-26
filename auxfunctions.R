@@ -277,25 +277,18 @@ is_image <- function(filename) {
 }
 
 close_all_sinks <- function(logcon) {
-  # close message sinks
+  # Close message sinks
   n_msg <- sink.number(type = "message")
-  if (n_msg > 0) {
-    #cat("closing",n_msg,"sink messages\n")
-    for (i in seq_len(n_msg)) sink(type = "message")
-  }
+  if (n_msg > 0) for (i in seq_len(n_msg)) sink(type = "message")
   
-  # close output sinks
+  # Close output sinks
   n_out <- sink.number()
-  if (n_out > 0) {
-    #cat("closing",n_msg,"sinks\n")
-    for (i in seq_len(n_out)) sink()
-  }
+  if (n_out > 0) for (i in seq_len(n_out)) sink()
   
-  # finally close the file connection if it's still valid
-  if (!is.null(logcon) && isOpen(logcon)) {
-    close(logcon)
-  }
+  # Safely close the file connection
+  if (!is.null(logcon)) try(close(logcon), silent = TRUE)
 }
+
 
 execute<-function(script_folder,params,process_to_call,process_folder,wrapper_folder){
   
