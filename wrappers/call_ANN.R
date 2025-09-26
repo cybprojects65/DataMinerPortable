@@ -22,7 +22,7 @@ doCall<-function(script_folder,params){
     cat("Executing the script\n")
     source("FeedForwardANN.R", local = TRUE)
     cat("End - Executing the script\n")
-    c("training_set_with_projections.csv","test_set_with_projections.csv","ann.Rdata","ann_logs.txt")
+    c("training_set_with_projections.csv","test_set_with_projections.csv","ann.Rdata")
   },
   error = function(e) {
     cat("Error while running FeedForwardANN.R:", conditionMessage(e), "\n")

@@ -18,7 +18,7 @@ doCall<-function(script_folder,params){
     cat("Executing the clustering script\n")
     source("HRS.R", local = TRUE)
     cat("End - Executing the script\n")
-    c("hrs_summary.txt","logs.txt")
+    c("hrs_summary.txt")
   },
   error = function(e) {
     cat("Error while running the model:", conditionMessage(e), "\n")

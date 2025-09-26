@@ -69,7 +69,7 @@ f <- as.formula(
 
 set.seed(20)
 log_file <- file(svm_out_file_logs, open = "wt")
-sinkit=T
+sinkit=F
 if (sinkit){
   sink(log_file, type = "output")  # redirect standard output to the file
   sink(log_file, type = "message") # redirect messages too (warnings, messages)

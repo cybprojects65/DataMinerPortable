@@ -20,7 +20,7 @@ doCall<-function(script_folder,params){
     cat("Executing the SVM script\n")
     source("SupportVectorMachines.R", local = TRUE)
     cat("End - Executing the script\n")
-    c("training_set_with_projections.csv","test_set_with_projections.csv","svm.Rdata","svm_logs.txt")
+    c("training_set_with_projections.csv","test_set_with_projections.csv","svm.Rdata")
   },
   error = function(e) {
     cat("Error while running SupportVectorMachines.R:", conditionMessage(e), "\n")

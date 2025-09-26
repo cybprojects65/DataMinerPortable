@@ -18,7 +18,7 @@ doCall<-function(script_folder,params){
     cat("Executing the clustering script\n")
     source("DBSCAN.R", local = TRUE)
     cat("End - Executing the script\n")
-    c("input_data_with_clusters.csv","cluster_centroids_standardised.csv","cluster_centroids.csv","clustering.Rdata","clustering_logs.txt")
+    c("input_data_with_clusters.csv","cluster_centroids_standardised.csv","cluster_centroids.csv","clustering.Rdata")
   },
   error = function(e) {
     cat("Error while running the model:", conditionMessage(e), "\n")
