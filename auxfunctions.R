@@ -276,6 +276,27 @@ is_image <- function(filename) {
   ext %in% c("png", "jpg", "jpeg", "gif", "bmp", "tiff")
 }
 
+close_all_sinks <- function(logcon) {
+  # close message sinks
+  n_msg <- sink.number(type = "message")
+  if (n_msg > 0) {
+    #cat("closing",n_msg,"sink messages\n")
+    for (i in seq_len(n_msg)) sink(type = "message")
+  }
+  
+  # close output sinks
+  n_out <- sink.number()
+  if (n_out > 0) {
+    #cat("closing",n_msg,"sinks\n")
+    for (i in seq_len(n_out)) sink()
+  }
+  
+  # finally close the file connection if it's still valid
+  if (!is.null(logcon) && isOpen(logcon)) {
+    close(logcon)
+  }
+}
+
 execute<-function(script_folder,params,process_to_call,process_folder,wrapper_folder){
   
   cat("#calling the external process\n")
@@ -288,12 +309,49 @@ execute<-function(script_folder,params,process_to_call,process_folder,wrapper_fo
   source(paste0(wrapper_folder,process_to_call), local = TRUE)
   
   script_sandbox<-paste0(script_folder,process_folder)
-  expected_outputs<-doCall(script_sandbox,params)
-  cat("#process called\n")
-  cat("output:",expected_outputs,"\n")
+  
+  logfile <- file.path(script_sandbox,"computation.log")
+  cat("writing log file to",logfile,"\n")
+  
+  logcon <- file(logfile, open = "wt")
+  # redirect outputs
+  sink(logcon, split = TRUE)               # normal output
+  sink(logcon, type = "message")           # messages too
+  
+  expected_outputs <- tryCatch(
+    {
+      cat("#########PROCESS START\n")
+      expected_outputs<-doCall(script_sandbox,params)
+      cat("#########PROCESS END\n")
+      # force sink cleanup right here
+      expected_outputs
+    },
+    error = function(e) {
+      
+      if (exists("showNotification")) {
+        showNotification("Error in the computation", type = "message")
+      }
+      # force sink cleanup right here
+     
+       cat("#########PROCESS ERROR\n")
+      c()
+    }
+  )
+
+  expected_outputs<-c(expected_outputs,basename(logfile))
+  #cat("#process called\n")
+  #cat("output:",expected_outputs,"\n")
+  
+  # Always clean up sinks and connection, even on error
+  on.exit({
+    close_all_sinks(logcon)
+  }, add = TRUE)
+  
+  
   return(list(
     expected_outputs=expected_outputs,
-    process_folder=process_folder))
+    process_folder=process_folder,
+    log = logfile))
 }
 
 erase<-function(processes_folder,script_folder){

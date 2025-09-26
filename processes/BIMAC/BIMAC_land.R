@@ -18,6 +18,7 @@ if(!exists("punctual_data_file")){
 
 source("BIMAC_functions.R")
 
+cat("\tpassed Boundaries (xmin,xmax,ymin,ymax):",min_x_boundingbox,",",max_x_boundingbox,",",min_y_boundingbox,",",max_y_boundingbox,"\n")
 
 output<-bimac_onland(punctual_data_file,
                      moving_average_points=smoothing, 

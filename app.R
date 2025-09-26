@@ -447,18 +447,19 @@ server <- function(input, output, session) {
     pf<-input_values_fulfilled()$process_folder
     
     process_outputs<-execute(script_folder,params,ptc,pf,wrapper_folder)
-    
+
     expected_outputs=process_outputs$expected_outputs
     process_folder_4d=process_outputs$process_folder
+    logfile=process_outputs$logfile
     
-    downloadResults(expected_outputs,output,process_folder_4d)
+    downloadResults(expected_outputs,output,process_folder_4d,logfile)
     
     showNotification("Computation finished", type = "message")
     
   })
 }
 
-downloadResults <- function(expected_outputs, output, process_folder) {
+downloadResults <- function(expected_outputs, output, process_folder,logfile) {
   
   if (length(expected_outputs) > 0) {
     
